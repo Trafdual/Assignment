@@ -1,99 +1,86 @@
-import { Text, View,FlatList,StyleSheet,Button,Modal,Pressable,TextInput } from "react-native";
-import { useState } from 'react';
-// yêu cầu: định nghĩa một mảng có 3 phần tử
-// mỗi phần tử gồm: id, name, age
-// sử dụng flatlist để hiển thị
+import { Text, View,FlatList,StyleSheet,Button,Modal,Pressable,TextInput, Alert } from "react-native";
+import { useState,useEffect } from 'react';
+import { API_USER } from "../../helpers/api";
+import { useIsFocused } from '@react-navigation/native';
 const UserList= (props) =>{
-    const[switchState,setSwitchState]= useState(false);
-const[list,setList] =useState([{id:1,name:'ABC',address: 'FPOLY',phone: '0967149183',trangthai:'1'}]);
-const[nameinput,setnameinput]=useState('');
-const[adddressinput,setadddinput]=useState('');
-const[phoneinput,setphoneinput]=useState('');
-const[trangthaiinput,settrangthaiinput]=useState('');
-const[editingId,setEditingId]=useState(0);
-const onClose = () =>{
-  setSwitchState(false);
-  setnameinput('');setEditingId(0);setadddinput('');setadddinput('');settrangthaiinput('');
-}
-const onsave=() =>{
-  // kiểm tra editingid để biết là đang cập nhật
-  if(editingId){
-    const newList=list.map(item => {
-if(item.id==editingId){
-  item.name=nameinput;
-  item.phone=phoneinput;
-  item.trangthai=trangthaiinput;
-  item.address=adddressinput;
-}
-return item;
-    });
-    setList(newList);
-    return onClose() ;
-  }
-  // định nghĩa object mới được lưu vào
-  const newItem={
-    id: list.length==0 ? 1: list[list.length-1].id+1,
-    name: nameinput,
-    trangthai: trangthaiinput,
-    phone: phoneinput,
-    address: adddressinput
-  }
-  //thêm phần tử mới vào mảng list
-  //dấu ... lấy toàn bộ phần tử của mảng mà không ảnh hưởng đến mảng đó
-  const newList=[...list,newItem];
-setList(newList);
-  // đóng modal
-  onClose;
-setSwitchState(false);
-}
-const onDelete =(deleteId) => {
-  const newList=list.filter(item => item.id !== deleteId);
-  setList(newList);
-};
-const onEdit =(editId) => {
-  //hiển thị modal và set giá trị cho input
-  setSwitchState(true);
-  //tìm ra phần tử đang cần sửa theo editId
-const editItem=list.find(item => item.id ==editId);
-setnameinput(editItem.name);
-setadddinput(editItem.address);
-setphoneinput(editItem.phone);
-settrangthaiinput(editItem.trangthai);
-//gán giá trị cho editingId để biết là đang sửa
-setEditingId(editId);
-};
+  const navigation=props.navigation;
+    // khai báo 1 biến trạng thái hiển thị
+    // sử dụng ở useEffect để lắng nghe việc cập nhật ds
+    const isFocused = useIsFocused();
+
+    const [list, setList] = useState([]);
+    const[isLoading,setLoading]=useState(true);
+    const getList = () => {
+        fetch(API_USER)
+            .then((res) => res.json()) // khi api call thành công thì chạy vào then
+            // kết quả của lần then trước là res.json() là tham số data của then tiếp theo
+            .then((data) => {setList(data); setLoading(false);})
+            .catch((err) => console.log(err)) // khi api call thất bại thì chạy vào catch
+    };
+
+    useEffect(() => {
+        // Khi component vừa render xong thì sẽ call API lấy dữ liệu về
+        getList();
+    }, [isFocused]); // Khi màn hình được quay lại thì sẽ gọi danh sách mới
+
+    const onDelete = (deleteId) => {
+        // Gọi API API_USER + 1 để xoá phần tử có id 1
+        // phương thức là DELETE
+        Alert.alert(
+          'Bạn có muốn xóa không ?',
+          'yes/no',
+          [{
+            text:'Yes',
+            onPress : () =>{
+              fetch(
+                API_USER + '/' + deleteId,
+                {method: 'DELETE'}
+            ).then((res) => getList())
+            .catch((err) => console.log(err));
+            }
+          },
+          {
+            text:'No',
+            onPress: () =>{}
+          } 
+        ]
+          )
+      
+    };
+
+    const onEdit = (editId) => {
+        // Call API lấy dữ liệu chi tiết ở đây rồi gửi sang
+        fetch(API_USER + '/' + editId)
+        .then((res) => res.json())
+        .then(data => navigation.navigate('Form', {
+            editData: data
+        }));
+    };
     return (
         <View>
-        <View>
-            <Text>Trang danh sách</Text>
-      { switchState? null:<Button title={'thêm mới'} onPress={() => setSwitchState(true)}/>}
-     <Modal visible ={switchState} animationType="slide">
-      <Text style={styles.text1}>Thêm mới</Text>
-<TextInput value={nameinput} placeholder='Tên' onChangeText={(text) =>setnameinput(text)} />
-<TextInput value={adddressinput} placeholder='Địa chỉ' onChangeText={(text) =>setadddinput(text)} />
-<TextInput value={phoneinput} placeholder='Số điện thoại' onChangeText={(text) =>setphoneinput(text)} />
-<TextInput value={trangthaiinput} placeholder='Trạng thái' onChangeText={(text) =>settrangthaiinput(text)} />
-<Button title={'hủy'} onPress={() => onClose()}/> 
-<Button title={'lưu'} onPress={() => onsave()}/>
-</Modal>
-        </View>
-        <View >
-           <FlatList 
+          <Text >Trang Danh Sách</Text>
+        <Button
+                title='Thêm mới'
+                onPress={() => navigation.navigate('Form')}
+            />
+            {isLoading
+                ? <Text >Loading...</Text>
+                :
+           <FlatList  
           data={list}
-          renderItem={({item}) => <View style={{marginTop:20}}>
-           <Text>{item.id}</Text>
-           <Text>{item.name}</Text>
-           <Text>{item.address}</Text>
-           <Text>{item.phone}</Text>
-           <Text>{item.trangthai}</Text>
-
-           <Pressable onPress={() => onEdit(item.id)}><Text>Sửa</Text></Pressable>
-       <Pressable onPress={() => onDelete(item.id)}><Text>Xóa</Text></Pressable>
+          renderItem={({item}) => <View >
+           <Text >ID: {item.id}</Text>
+           <Text >Tên: {item.name}</Text>
+           <Text >Địa Chỉ: {item.address}</Text>
+           <Text >Số Điện Thoại: {item.phone}</Text>
+           <Text >Trạng Thái: {item.trangthai}</Text>
+           <Pressable  onPress={() => onEdit(item.id)}><Text >Sửa</Text></Pressable>
+       <Pressable   onPress={() => onDelete(item.id)}><Text >Xóa</Text></Pressable>
            </View>} 
-          keyExtractor={(item) => item.id}
-           />
+          keyExtractor={(item,index) => index}
+           />}
            </View>
-           </View>
+          
     );
 };
 const styles = StyleSheet.create({
@@ -104,6 +91,7 @@ const styles = StyleSheet.create({
       justifyContent: 'center',
     },
     text:{
+      marginLeft:20,
       fontSize:20,
       color:'black'
     },

@@ -1,12 +1,11 @@
 {
-    "users":[{
-        "id":1,
-        "name":"Nguyễn Hoàng Trà"
-    },
+  "users": [
     {
-        "id":1,
-        "name":"Nguyễn Hoàng Trà"
+      "name": "Nguyen van a",
+      "trangthai": "1",
+      "phone": "0967149183",
+      "address": "fpoly",
+      "id": 3
     }
-
-]
+  ]
 }
